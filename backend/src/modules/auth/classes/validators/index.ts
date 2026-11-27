@@ -1,0 +1,1 @@
+import { JSONSchema } from "class-validator-jsonschema";

@@ -1,0 +1,6 @@
+node_modules
+build
+.env
+*.log
+coverage
+synth-code-e4e06-firebase-adminsdk-fbsvc-79c2269bb0.json
