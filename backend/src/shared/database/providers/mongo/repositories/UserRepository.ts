@@ -2,9 +2,10 @@ import { Collection } from "mongodb";
 import { IUserRepository } from "../../../interfaces/IUserRepository.js";
 import { IUser, UserRole } from "../../../../interfaces/model.js";
 import { GLOBAL_TYPES } from "../../../../../types.js";
-import { inject } from "@inversifyjs/core";
+import { inject, injectable } from "inversify";
 import { MongoDatabase } from "../index.js";
 
+@injectable()
 export class UserRepository implements IUserRepository {
     private userCollection: Collection<IUser>;
 
@@ -38,6 +39,9 @@ export class UserRepository implements IUserRepository {
             role: UserRole.USER,
             isBlocked: false,
         });
+        if(result.insertedId === null){
+            return { id: "null", message: "Something went wrong..."}
+        }
         return { id: result.insertedId.toString(), message: "User created successfully" };
     }
 }
