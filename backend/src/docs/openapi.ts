@@ -18,7 +18,7 @@ export function buildOpenApiSpec() {
         version: appConfig.version,
         description: 'SynthCode backend API documentation.',
       },
-      servers: [{ url: appConfig.routePrefix, description: 'Current API server' }],
+      servers: [{ url: '/', description: 'Current API server' }],
       components: {
         schemas,
         securitySchemes: {
