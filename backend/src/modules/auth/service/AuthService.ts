@@ -95,13 +95,21 @@ export class AuthService implements IAuthService {
     if (exists) throw new HttpError(409, 'Email or username is already registered');
 
     const now = new Date();
-    const result = await this.users.insertOne({
-      email, username, password: await hashPassword(input.password),
-      verified: false, role: UserRole.USER, isBlocked: false, createdAt: now, updatedAt: now,
-    } as AuthUser);
+    let insertedId: ObjectId;
+    try {
+      const result = await this.users.insertOne({
+        email, username, password: await hashPassword(input.password),
+        verified: false, role: UserRole.USER, isBlocked: false, createdAt: now, updatedAt: now,
+      } as AuthUser);
+      insertedId = result.insertedId;
+    } catch (error: any) {
+      if (error?.code === 11000) throw new HttpError(409, 'Email or username is already registered');
+      throw error;
+    }
+
     const rawToken = createOpaqueToken();
     await this.tokens.insertOne({
-      userId: result.insertedId, tokenHash: hashToken(rawToken), purpose: 'email_verification',
+      userId: insertedId, tokenHash: hashToken(rawToken), purpose: 'email_verification',
       expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS), createdAt: now,
     });
     await this.enqueueEmail(email, 'verify_email', { token: rawToken, username });
@@ -211,9 +219,16 @@ export class AuthService implements IAuthService {
       expiresAt: { $gt: new Date() }, usedAt: { $exists: false },
     });
     if (!record) throw new UnauthorizedError('Password reset token is invalid or expired');
+
+    const claimed = await this.tokens.updateOne(
+      { _id: record._id, usedAt: { $exists: false }, expiresAt: { $gt: new Date() } },
+      { $set: { usedAt: new Date() } },
+    );
+    if (claimed.modifiedCount !== 1) throw new UnauthorizedError('Password reset token has already been used');
+
     const password = await hashPassword(newPassword);
-    await this.users.updateOne({ _id: record.userId }, { $set: { password, updatedAt: new Date() } });
-    await this.tokens.updateOne({ _id: record._id }, { $set: { usedAt: new Date() } });
+    const changed = await this.users.updateOne({ _id: record.userId }, { $set: { password, updatedAt: new Date() } });
+    if (!changed.matchedCount) throw new NotFoundError('User not found');
     await this.sessions.updateMany({ userId: record.userId, revokedAt: { $exists: false } }, { $set: { revokedAt: new Date() } });
     return { message: 'Password updated. Please log in again.' };
   }
