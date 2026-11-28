@@ -4,6 +4,7 @@ import { useExpressServer } from 'routing-controllers';
 import { appConfig } from './config/index.js';
 import { loadAppModules } from './bootstrap/loadModules.js';
 import { HttpErrorHandler, loggingHandler } from './shared/index.js';
+import { buildOpenApiSpec, swaggerUiHtml } from './docs/openapi.js';
 
 /** Builds the Express app. Kept separate from index.ts so tests can import it. */
 export async function createApp(): Promise<express.Express> {
@@ -31,6 +32,11 @@ export async function createApp(): Promise<express.Express> {
       credentials: true,
     },
   });
+
+  // OpenAPI is generated from controller decorators and class-validator DTO metadata.
+  const openApiSpec = buildOpenApiSpec();
+  app.get('/api-docs.json', (_req, res) => res.json(openApiSpec));
+  app.get('/api-docs', (_req, res) => res.type('html').send(swaggerUiHtml));
 
   // Anything the controllers did not handle. routing-controllers calls next() even after
   // it has answered, so only respond if nothing has been sent yet.
