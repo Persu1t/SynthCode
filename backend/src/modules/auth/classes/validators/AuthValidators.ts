@@ -122,7 +122,7 @@ export class AuthTokenResponseDto {
   @IsNumber()
   expiresIn!: number;
 
-  @JSONSchema({ description: 'Authenticated user information' })
+  @JSONSchema({ description: 'Authenticated user information', $ref: '#/components/schemas/AuthUserResponseDto' })
   user!: AuthUserResponseDto;
 }
 
