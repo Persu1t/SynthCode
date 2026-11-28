@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ExpressMiddlewareInterface, UnauthorizedError } from 'routing-controllers';
+import { ExpressMiddlewareInterface, Middleware, UnauthorizedError } from 'routing-controllers';
 import { injectable } from 'inversify';
 import { verifyToken } from '../utils/crypto.js';
 
@@ -7,6 +7,7 @@ export interface AuthenticatedRequest extends Request {
   authUser?: { id: string; email: string; role: string };
 }
 
+@Middleware({ type: 'before' })
 @injectable()
 export class AuthMiddleware implements ExpressMiddlewareInterface {
   use(request: AuthenticatedRequest, _response: Response, next: NextFunction): void {
