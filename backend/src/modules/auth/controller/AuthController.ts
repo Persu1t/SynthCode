@@ -1,7 +1,5 @@
 import { inject, injectable } from 'inversify';
-import {
-  Body, CurrentUser, Get, JsonController, Patch, Post, UseBefore,
-} from 'routing-controllers';
+import { Body, Get, JsonController, Patch, Post, Req, UseBefore } from 'routing-controllers';
 import { AUTH_TYPES } from '../types.js';
 import { AuthService } from '../service/AuthService.js';
 import { AuthMiddleware, type AuthenticatedRequest } from '../middleware/AuthMiddleware.js';
@@ -57,13 +55,13 @@ export class AuthController {
 
   @Get('/me')
   @UseBefore(AuthMiddleware)
-  me(@CurrentUser({ required: false }) _currentUser: unknown, request: AuthenticatedRequest) {
+  me(@Req() request: AuthenticatedRequest) {
     return this.authService.getProfile(request.authUser!.id);
   }
 
   @Patch('/me')
   @UseBefore(AuthMiddleware)
-  updateMe(@Body() body: UpdateProfileDto, request: AuthenticatedRequest) {
+  updateMe(@Body() body: UpdateProfileDto, @Req() request: AuthenticatedRequest) {
     return this.authService.updateProfile(request.authUser!.id, body.username);
   }
 }

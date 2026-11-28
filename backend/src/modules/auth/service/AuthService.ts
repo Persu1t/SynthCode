@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { MongoDatabase } from '../../../shared/database/providers/mongo/index.js';
 import { GLOBAL_TYPES } from '../../../types.js';
 import { ObjectId, type Collection } from 'mongodb';
-import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from 'routing-controllers';
+import { BadRequestError, ForbiddenError, HttpError, NotFoundError, UnauthorizedError } from 'routing-controllers';
 import type { IAuthService, AuthTokenResponse } from '../interfaces/IAuthService.js';
 import type { RegisterDto, LoginDto } from '../classes/validators/AuthValidators.js';
 import {
@@ -92,7 +92,7 @@ export class AuthService implements IAuthService {
     const email = input.email.trim().toLowerCase();
     const username = input.username.trim();
     const exists = await this.users.findOne({ $or: [{ email }, { username }] });
-    if (exists) throw new ConflictError('Email or username is already registered');
+    if (exists) throw new HttpError(409, 'Email or username is already registered');
 
     const now = new Date();
     const result = await this.users.insertOne({
@@ -110,13 +110,12 @@ export class AuthService implements IAuthService {
 
   async verifyEmail(token: string): Promise<{ message: string }> {
     await this.init();
-    const tokenHashValue = hashToken(token);
     const record = await this.tokens.findOne({
-      tokenHash: tokenHashValue, purpose: 'email_verification', expiresAt: { $gt: new Date() }, usedAt: { $exists: false },
+      tokenHash: hashToken(token), purpose: 'email_verification', expiresAt: { $gt: new Date() }, usedAt: { $exists: false },
     });
     if (!record) throw new UnauthorizedError('Verification token is invalid or expired');
     const result = await this.users.updateOne({ _id: record.userId, verified: false }, { $set: { verified: true, updatedAt: new Date() } });
-    if (result.modifiedCount !== 1) throw new ConflictError('Account is already verified or unavailable');
+    if (result.modifiedCount !== 1) throw new BadRequestError('Account is already verified or unavailable');
     await this.tokens.updateOne({ _id: record._id }, { $set: { usedAt: new Date() } });
     await this.tokens.deleteMany({ userId: record.userId, purpose: 'email_verification', _id: { $ne: record._id } });
     return { message: 'Email verified successfully. You can now log in.' };
@@ -145,10 +144,9 @@ export class AuthService implements IAuthService {
     if (user.isBlocked) throw new ForbiddenError('This account has been blocked');
 
     const refreshToken = createOpaqueToken();
-    const now = new Date();
     await this.sessions.insertOne({
       userId: user._id, tokenHash: hashToken(refreshToken),
-      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000), createdAt: now,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000), createdAt: new Date(),
     });
     return this.issueTokens(user, refreshToken);
   }
@@ -220,7 +218,7 @@ export class AuthService implements IAuthService {
     return { message: 'Password updated. Please log in again.' };
   }
 
-  async getProfile(userId: string): Promise<Omit<AuthUser, 'password'> & { id: string }> {
+  async getProfile(userId: string): Promise<Record<string, unknown>> {
     await this.init();
     if (!ObjectId.isValid(userId)) throw new UnauthorizedError('Invalid user');
     const user = await this.users.findOne({ _id: new ObjectId(userId) });
@@ -240,7 +238,7 @@ export class AuthService implements IAuthService {
       if (!result.matchedCount) throw new NotFoundError('User not found');
       return { message: 'Profile updated successfully' };
     } catch (error: any) {
-      if (error?.code === 11000) throw new ConflictError('Username is already taken');
+      if (error?.code === 11000) throw new HttpError(409, 'Username is already taken');
       throw error;
     }
   }
