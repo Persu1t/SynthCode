@@ -4,7 +4,6 @@ export const GLOBAL_TYPES = {
   AppConfig: Symbol.for('AppConfig'),
   dbUri: Symbol.for('dbUri'),
   dbName: Symbol.for('dbName'),
-
-  // Repositories
   UserRepository: Symbol.for('UserRepository'),
+  AuthRepository: Symbol.for('AuthRepository'),
 };
