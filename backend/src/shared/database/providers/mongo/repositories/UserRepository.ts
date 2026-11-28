@@ -8,7 +8,7 @@ import type { dtoUser } from '../../../../interfaces/dto.js';
 
 @injectable()
 export class UserRepository implements IUserRepository {
-  private users!: Collection<UserRecord>;
+  private users!: Collection<NewUserRecord>;
   private initialized?: Promise<void>;
 
   constructor(@inject(GLOBAL_TYPES.Database) private readonly database: MongoDatabase) {}
@@ -16,7 +16,7 @@ export class UserRepository implements IUserRepository {
   private async init(): Promise<void> {
     if (!this.initialized) {
       this.initialized = (async () => {
-        this.users = await this.database.getCollection<UserRecord>('users');
+        this.users = await this.database.getCollection<NewUserRecord>('users');
         await Promise.all([
           this.users.createIndex({ email: 1 }, { unique: true }),
           this.users.createIndex({ username: 1 }, { unique: true }),
@@ -52,7 +52,7 @@ export class UserRepository implements IUserRepository {
       const result = await this.users.insertOne(user);
       const created = await this.users.findOne({ _id: result.insertedId });
       if (!created) throw new Error('User was inserted but could not be read back');
-      return created;
+      return created as UserRecord;
     } catch (error) {
       this.throwConflict(error);
     }
@@ -60,17 +60,17 @@ export class UserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<UserRecord | null> {
     await this.init();
-    return this.users.findOne({ email });
+    return this.users.findOne({ email }) as Promise<UserRecord | null>;
   }
 
   async findByEmailOrUsername(email: string, username: string): Promise<UserRecord | null> {
     await this.init();
-    return this.users.findOne({ $or: [{ email }, { username }] });
+    return this.users.findOne({ $or: [{ email }, { username }] }) as Promise<UserRecord | null>;
   }
 
   async findById(id: ObjectId): Promise<UserRecord | null> {
     await this.init();
-    return this.users.findOne({ _id: id });
+    return this.users.findOne({ _id: id }) as Promise<UserRecord | null>;
   }
 
   async markVerified(id: ObjectId, updatedAt: Date): Promise<boolean> {

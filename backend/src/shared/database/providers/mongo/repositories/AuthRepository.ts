@@ -14,8 +14,9 @@ import type { AuthTokenPurpose } from '../../../../interfaces/model.js';
 
 @injectable()
 export class AuthRepository implements IAuthRepository {
-  private tokens!: Collection<AuthTokenRecord>;
-  private sessions!: Collection<AuthSessionRecord>;
+  // Insert types allow MongoDB to generate _id; reads are normalized to persisted record types.
+  private tokens!: Collection<NewAuthTokenRecord>;
+  private sessions!: Collection<NewAuthSessionRecord>;
   private outbox!: Collection<EmailOutboxRecord>;
   private initialized?: Promise<void>;
 
@@ -24,8 +25,8 @@ export class AuthRepository implements IAuthRepository {
   private async init(): Promise<void> {
     if (!this.initialized) {
       this.initialized = (async () => {
-        this.tokens = await this.database.getCollection<AuthTokenRecord>('auth_tokens');
-        this.sessions = await this.database.getCollection<AuthSessionRecord>('auth_sessions');
+        this.tokens = await this.database.getCollection<NewAuthTokenRecord>('auth_tokens');
+        this.sessions = await this.database.getCollection<NewAuthSessionRecord>('auth_sessions');
         this.outbox = await this.database.getCollection<EmailOutboxRecord>('email_outbox');
         await Promise.all([
           this.tokens.createIndex({ tokenHash: 1, purpose: 1 }, { unique: true }),
@@ -46,7 +47,7 @@ export class AuthRepository implements IAuthRepository {
 
   async findActiveToken(tokenHash: string, purpose: AuthTokenPurpose, now: Date): Promise<AuthTokenRecord | null> {
     await this.init();
-    return this.tokens.findOne({ tokenHash, purpose, expiresAt: { $gt: now }, usedAt: { $exists: false } });
+    return this.tokens.findOne({ tokenHash, purpose, expiresAt: { $gt: now }, usedAt: { $exists: false } }) as Promise<AuthTokenRecord | null>;
   }
 
   async consumeToken(id: ObjectId, now: Date): Promise<boolean> {
@@ -72,7 +73,7 @@ export class AuthRepository implements IAuthRepository {
 
   async findActiveSession(tokenHash: string, now: Date): Promise<AuthSessionRecord | null> {
     await this.init();
-    return this.sessions.findOne({ tokenHash, expiresAt: { $gt: now }, revokedAt: { $exists: false } });
+    return this.sessions.findOne({ tokenHash, expiresAt: { $gt: now }, revokedAt: { $exists: false } }) as Promise<AuthSessionRecord | null>;
   }
 
   async rotateSession(id: ObjectId, oldHash: string, newHash: string, expiresAt: Date): Promise<boolean> {
