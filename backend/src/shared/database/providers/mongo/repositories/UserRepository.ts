@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { type Collection, ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '../../../../../types.js';
-import { UserRole, type IUser } from '../../../../interfaces/model.js';
+import { UserRole } from '../../../../interfaces/model.js';
 import { MongoDatabase } from '../index.js';
 import type {
   IUserRepository,
@@ -33,9 +33,7 @@ export class UserRepository implements IUserRepository {
 
   private throwConflict(error: unknown): never {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
-      const conflict = new Error('Email or username is already registered');
-      conflict.name = 'RepositoryConflictError';
-      throw conflict;
+      throw new RepositoryConflictError('Email or username is already registered');
     }
     throw error;
   }
