@@ -9,7 +9,7 @@ export interface AuthTokenResponse {
   tokenType: 'Bearer';
   expiresIn: number;
   user: {
-    id: string;
+    id: string | null;
     email: string;
     username: string;
     role: string;

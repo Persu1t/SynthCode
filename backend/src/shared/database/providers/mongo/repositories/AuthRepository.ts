@@ -3,14 +3,11 @@ import { type Collection, ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '../../../../../types.js';
 import { MongoDatabase } from '../index.js';
 import type {
-  AuthSessionRecord,
-  AuthTokenPurpose,
-  AuthTokenRecord,
   EmailOutboxRecord,
   IAuthRepository,
-  NewAuthSessionRecord,
-  NewAuthTokenRecord,
 } from '../../../interfaces/IAuthRepository.js';
+
+import { AuthTokenPurpose, AuthSessionRecord, AuthTokenRecord } from '../../../../interfaces/model.js';
 
 @injectable()
 export class AuthRepository implements IAuthRepository {
@@ -39,7 +36,7 @@ export class AuthRepository implements IAuthRepository {
     await this.initialized;
   }
 
-  async createToken(record: NewAuthTokenRecord): Promise<void> {
+  async createToken(record:AuthTokenRecord): Promise<void> {
     await this.init();
     await this.tokens.insertOne(record);
   }
@@ -65,7 +62,7 @@ export class AuthRepository implements IAuthRepository {
     await this.tokens.deleteMany(filter);
   }
 
-  async createSession(record: NewAuthSessionRecord): Promise<void> {
+  async createSession(record:AuthSessionRecord): Promise<void> {
     await this.init();
     await this.sessions.insertOne(record);
   }

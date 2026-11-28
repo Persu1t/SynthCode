@@ -3,12 +3,11 @@ import type { dtoUser } from '../../interfaces/dto.js';
 import type { IUser } from '../../interfaces/model.js';
 
 export interface UserRecord extends IUser {
-  _id: ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type NewUserRecord = Omit<UserRecord, '_id'>;
+// export type NewUserRecord = Omit<UserRecord, '_id'>;
 
 export class RepositoryConflictError extends Error {
   constructor(message: string) {
@@ -19,7 +18,7 @@ export class RepositoryConflictError extends Error {
 
 export interface IUserRepository {
   createUser(user: dtoUser): Promise<{ id: string; message: string }>;
-  createAuthUser(user: NewUserRecord): Promise<UserRecord>;
+  createAuthUser(user: UserRecord): Promise<UserRecord>;
   findByEmail(email: string): Promise<UserRecord | null>;
   findByEmailOrUsername(email: string, username: string): Promise<UserRecord | null>;
   findById(id: ObjectId): Promise<UserRecord | null>;

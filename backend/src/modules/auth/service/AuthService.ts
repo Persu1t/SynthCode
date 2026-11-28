@@ -36,7 +36,7 @@ export class AuthService implements IAuthService {
 
   private publicUser(user: UserRecord): AuthTokenResponse['user'] {
     return {
-      id: user._id.toString(),
+      id: user._id ? user._id.toString() : null,
       email: user.email,
       username: user.username,
       role: user.role,
@@ -86,7 +86,7 @@ export class AuthService implements IAuthService {
 
     const rawToken = createOpaqueToken();
     await this.authRepository.createToken({
-      userId: user._id,
+      userId: user._id || null,
       tokenHash: hashToken(rawToken),
       purpose: 'email_verification',
       expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
@@ -260,4 +260,6 @@ export class AuthService implements IAuthService {
       throw error;
     }
   }
+}
+ 
 }

@@ -3,7 +3,7 @@ import { type Collection, ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '../../../../../types.js';
 import { UserRole } from '../../../../interfaces/model.js';
 import { MongoDatabase } from '../index.js';
-import { RepositoryConflictError, type IUserRepository, type NewUserRecord, type UserRecord } from '../../../interfaces/IUserRepository.js';
+import { RepositoryConflictError, type IUserRepository, type UserRecord } from '../../../interfaces/IUserRepository.js';
 import type { dtoUser } from '../../../../interfaces/dto.js';
 
 @injectable()
@@ -36,6 +36,7 @@ export class UserRepository implements IUserRepository {
   async createUser(user: dtoUser): Promise<{ id: string; message: string }> {
     const now = new Date();
     const created = await this.createAuthUser({
+      _id: new ObjectId(),
       ...user,
       verified: false,
       role: UserRole.USER,
@@ -46,7 +47,7 @@ export class UserRepository implements IUserRepository {
     return { id: created._id.toString(), message: 'User created successfully' };
   }
 
-  async createAuthUser(user: NewUserRecord): Promise<UserRecord> {
+  async createAuthUser(user: UserRecord): Promise<UserRecord> {
     await this.init();
     try {
       const result = await this.users.insertOne(user);
