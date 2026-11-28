@@ -1,7 +1,6 @@
 import type {
   RegisterDto,
   LoginDto,
-  UpdateProfileDto,
 } from '../classes/validators/AuthValidators.js';
 
 export interface AuthTokenResponse {
