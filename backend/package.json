@@ -26,7 +26,8 @@
     "inversify": "^7.5.2",
     "mongodb": "^7.8.0",
     "reflect-metadata": "^0.2.2",
-    "routing-controllers": "^0.11.2"
+    "routing-controllers": "^0.11.2",
+    "routing-controllers-openapi": "^5.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -6,13 +6,30 @@ import { AuthMiddleware, type AuthenticatedRequest } from '../middleware/AuthMid
 import {
   RegisterDto, VerifyEmailDto, LoginDto, RefreshTokenDto, LogoutDto,
   ResendVerificationDto, ForgotPasswordDto, ResetPasswordDto, UpdateProfileDto,
+  SignupResponse,
 } from '../classes/validators/AuthValidators.js';
+import { OpenAPI, ResponseSchema } from 'routing-controllers-openapi';
 
+@OpenAPI({
+  tags: ['Authentication'],
+  description: 'Authentication and authorization operations'
+})
 @JsonController('/auth')
 @injectable()
 export class AuthController {
   constructor(@inject(AUTH_TYPES.AuthService) private readonly authService: AuthService) {}
 
+
+  @OpenAPI({
+    summary: 'Register a new user account',
+    description:
+      'Registers a new user using Firebase Authentication and stores additional user details in the application database. This is typically the first step for any new user to access the system.',
+  })
+
+  @ResponseSchema(SignupResponse, {
+    statusCode: 200,
+    description: 'User registered successfully. A verification email has been sent.',
+  })
   @Post('/register')
   register(@Body() body: RegisterDto) {
     return this.authService.register(body);

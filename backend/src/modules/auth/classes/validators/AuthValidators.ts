@@ -1,4 +1,5 @@
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { JSONSchema } from 'class-validator-jsonschema';
 
 export class RegisterDto {
   @IsEmail()
@@ -69,4 +70,17 @@ export class UpdateProfileDto {
   @MinLength(3)
   @MaxLength(32)
   username!: string;
+}
+
+export class SignupResponse {
+  @JSONSchema({
+    description: 'Unique identifier of User',
+    example: "6b0939b2c456f9e54613ebfa",
+    type: 'string',
+    readOnly: true,
+  })
+
+  @IsNotEmpty()
+  @IsString()
+  id: string;
 }
