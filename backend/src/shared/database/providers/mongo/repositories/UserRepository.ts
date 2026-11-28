@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { type Collection } from 'mongodb';
+import { ObjectId, type Collection } from 'mongodb';
 import { GLOBAL_TYPES } from '../../../../../types.js';
 import { UserRole } from '../../../../interfaces/model.js';
 import { MongoDatabase } from '../index.js';
