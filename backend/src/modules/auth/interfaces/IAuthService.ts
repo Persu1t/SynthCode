@@ -1,4 +1,8 @@
-import type { RegisterDto, LoginDto } from '../classes/validators/AuthValidators.js';
+import type {
+  RegisterDto,
+  LoginDto,
+  UpdateProfileDto,
+} from '../classes/validators/AuthValidators.js';
 
 export interface AuthTokenResponse {
   accessToken: string;
@@ -17,7 +21,12 @@ export interface AuthTokenResponse {
 export interface IAuthService {
   register(input: RegisterDto): Promise<{ message: string }>;
   verifyEmail(token: string): Promise<{ message: string }>;
+  resendVerification(email: string): Promise<{ message: string }>;
   login(input: LoginDto): Promise<AuthTokenResponse>;
   refresh(refreshToken: string): Promise<AuthTokenResponse>;
   logout(refreshToken: string): Promise<{ message: string }>;
+  forgotPassword(email: string): Promise<{ message: string }>;
+  resetPassword(token: string, newPassword: string): Promise<{ message: string }>;
+  getProfile(userId: string): Promise<Record<string, unknown>>;
+  updateProfile(userId: string, username: string): Promise<{ message: string }>;
 }
