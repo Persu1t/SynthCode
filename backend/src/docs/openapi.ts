@@ -3,8 +3,62 @@ import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 import { routingControllersToSpec } from 'routing-controllers-openapi';
 import { appConfig } from '../config/index.js';
 
+/**
+ * tsx/esbuild does not emit design:paramtypes even when emitDecoratorMetadata is
+ * enabled in tsconfig. routing-controllers-openapi assumes that metadata always
+ * exists and indexes it for every decorated parameter. Supply safe Object
+ * fallbacks for missing entries; explicit OpenAPI requestBody schemas remain
+ * the source of truth for documented DTO bodies.
+ */
+function ensureParameterTypeMetadata(): void {
+  const storage = getMetadataArgsStorage();
+  const maxIndexesByTarget = new Map<object, Map<string, number>>();
+
+  for (const param of storage.params) {
+    if (typeof param.method !== 'string') continue;
+
+    let methods = maxIndexesByTarget.get(param.object);
+    if (!methods) {
+      methods = new Map<string, number>();
+      maxIndexesByTarget.set(param.object, methods);
+    }
+
+    methods.set(
+      param.method,
+      Math.max(methods.get(param.method) ?? -1, param.index),
+    );
+  }
+
+  for (const [target, methods] of maxIndexesByTarget) {
+    for (const [method, maxIndex] of methods) {
+      const existing = Reflect.getMetadata(
+        'design:paramtypes',
+        target,
+        method,
+      ) as unknown[] | undefined;
+
+      const requiredLength = maxIndex + 1;
+      if (existing && existing.length >= requiredLength) continue;
+
+      const parameterTypes = Array.from(
+        { length: requiredLength },
+        (_, index) => existing?.[index] ?? Object,
+      );
+
+      Reflect.defineMetadata(
+        'design:paramtypes',
+        parameterTypes,
+        target,
+        method,
+      );
+    }
+  }
+}
+
 /** Builds the OpenAPI document from routing-controller and class-validator metadata. */
 export function buildOpenApiSpec() {
+  ensureParameterTypeMetadata();
+
   const schemas = validationMetadatasToSchemas({
     refPointerPrefix: '#/components/schemas/',
   });
