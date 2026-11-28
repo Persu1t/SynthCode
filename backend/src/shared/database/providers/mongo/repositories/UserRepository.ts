@@ -1,47 +1,107 @@
-import { Collection } from "mongodb";
-import { IUserRepository } from "../../../interfaces/IUserRepository.js";
-import { IUser, UserRole } from "../../../../interfaces/model.js";
-import { GLOBAL_TYPES } from "../../../../../types.js";
-import { inject, injectable } from "inversify";
-import { MongoDatabase } from "../index.js";
+import { inject, injectable } from 'inversify';
+import { type Collection, ObjectId } from 'mongodb';
+import { GLOBAL_TYPES } from '../../../../../types.js';
+import { UserRole, type IUser } from '../../../../interfaces/model.js';
+import { MongoDatabase } from '../index.js';
+import type {
+  IUserRepository,
+  NewUserRecord,
+  RepositoryConflictError,
+  UserRecord,
+} from '../../../interfaces/IUserRepository.js';
+import type { dtoUser } from '../../../../interfaces/dto.js';
 
 @injectable()
 export class UserRepository implements IUserRepository {
-    private userCollection: Collection<IUser>;
+  private users!: Collection<UserRecord>;
+  private initialized?: Promise<void>;
 
-    constructor(
-        @inject(GLOBAL_TYPES.Database)
-        private database: MongoDatabase
-    ){}
+  constructor(@inject(GLOBAL_TYPES.Database) private readonly database: MongoDatabase) {}
 
-    private async init(): Promise<void> {
-        if(!this.userCollection) {
-            this.userCollection = await this.database.getCollection<IUser>("users");
-
-        }
+  private async init(): Promise<void> {
+    if (!this.initialized) {
+      this.initialized = (async () => {
+        this.users = await this.database.getCollection<UserRecord>('users');
+        await Promise.all([
+          this.users.createIndex({ email: 1 }, { unique: true }),
+          this.users.createIndex({ username: 1 }, { unique: true }),
+        ]);
+      })();
     }
+    await this.initialized;
+  }
 
-    private async ensureIndexes(){
-        try {
-            await this.userCollection.createIndex({ email: 1 }, { unique: true });
-            await this.userCollection.createIndex({ username: 1 }, { unique: true });
-        }catch(error){
-            console.error("Error creating indexes:", error);
-        }
+  private throwConflict(error: unknown): never {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      const conflict = new Error('Email or username is already registered');
+      conflict.name = 'RepositoryConflictError';
+      throw conflict;
     }
+    throw error;
+  }
 
-    async createUser(user: { email: string; password: string; username: string }): Promise<{id: string, message: string}> {
-        await this.init();
-        await this.ensureIndexes();
-        const result = await this.userCollection.insertOne({
-            ...user,
-            verified: false,
-            role: UserRole.USER,
-            isBlocked: false,
-        });
-        if(result.insertedId === null){
-            return { id: "null", message: "Something went wrong..."}
-        }
-        return { id: result.insertedId.toString(), message: "User created successfully" };
+  async createUser(user: dtoUser): Promise<{ id: string; message: string }> {
+    const now = new Date();
+    const created = await this.createAuthUser({
+      ...user,
+      verified: false,
+      role: UserRole.USER,
+      isBlocked: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { id: created._id.toString(), message: 'User created successfully' };
+  }
+
+  async createAuthUser(user: NewUserRecord): Promise<UserRecord> {
+    await this.init();
+    try {
+      const result = await this.users.insertOne(user);
+      const created = await this.users.findOne({ _id: result.insertedId });
+      if (!created) throw new Error('User was inserted but could not be read back');
+      return created;
+    } catch (error) {
+      this.throwConflict(error);
     }
+  }
+
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    await this.init();
+    return this.users.findOne({ email });
+  }
+
+  async findByEmailOrUsername(email: string, username: string): Promise<UserRecord | null> {
+    await this.init();
+    return this.users.findOne({ $or: [{ email }, { username }] });
+  }
+
+  async findById(id: ObjectId): Promise<UserRecord | null> {
+    await this.init();
+    return this.users.findOne({ _id: id });
+  }
+
+  async markVerified(id: ObjectId, updatedAt: Date): Promise<boolean> {
+    await this.init();
+    const result = await this.users.updateOne(
+      { _id: id, verified: false },
+      { $set: { verified: true, updatedAt } },
+    );
+    return result.modifiedCount === 1;
+  }
+
+  async updatePassword(id: ObjectId, password: string, updatedAt: Date): Promise<boolean> {
+    await this.init();
+    const result = await this.users.updateOne({ _id: id }, { $set: { password, updatedAt } });
+    return result.matchedCount === 1;
+  }
+
+  async updateUsername(id: ObjectId, username: string, updatedAt: Date): Promise<boolean> {
+    await this.init();
+    try {
+      const result = await this.users.updateOne({ _id: id }, { $set: { username, updatedAt } });
+      return result.matchedCount === 1;
+    } catch (error) {
+      this.throwConflict(error);
+    }
+  }
 }
