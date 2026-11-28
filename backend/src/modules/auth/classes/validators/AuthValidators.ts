@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { JSONSchema } from 'class-validator-jsonschema';
 
 export class RegisterDto {
@@ -72,15 +80,63 @@ export class UpdateProfileDto {
   username!: string;
 }
 
-export class SignupResponse {
-  @JSONSchema({
-    description: 'Unique identifier of User',
-    example: "6b0939b2c456f9e54613ebfa",
-    type: 'string',
-    readOnly: true,
-  })
-
-  @IsNotEmpty()
+export class MessageResponseDto {
+  @JSONSchema({ description: 'Human-readable result message', example: 'Operation completed successfully' })
   @IsString()
-  id: string;
+  message!: string;
 }
+
+export class AuthUserResponseDto {
+  @JSONSchema({ description: 'Unique user identifier', example: '6b0939b2c456f9e54613ebfa' })
+  @IsString()
+  id!: string;
+
+  @JSONSchema({ example: 'developer@example.com' })
+  @IsEmail()
+  email!: string;
+
+  @JSONSchema({ example: 'developer' })
+  @IsString()
+  username!: string;
+
+  @JSONSchema({ example: 'user' })
+  @IsString()
+  role!: string;
+
+  @JSONSchema({ example: true })
+  @IsBoolean()
+  verified!: boolean;
+}
+
+export class AuthTokenResponseDto {
+  @IsString()
+  accessToken!: string;
+
+  @IsString()
+  refreshToken!: string;
+
+  @JSONSchema({ example: 'Bearer' })
+  @IsString()
+  tokenType!: string;
+
+  @IsNumber()
+  expiresIn!: number;
+
+  @JSONSchema({ description: 'Authenticated user information' })
+  user!: AuthUserResponseDto;
+}
+
+export class UserProfileResponseDto extends AuthUserResponseDto {}
+
+export class AuthErrorResponseDto {
+  @JSONSchema({ example: 'UnauthorizedError' })
+  @IsString()
+  error!: string;
+
+  @JSONSchema({ example: 'Invalid or expired access token' })
+  @IsString()
+  message!: string;
+}
+
+/** Kept for compatibility with existing imports; registration returns a message, not an id. */
+export class SignupResponse extends MessageResponseDto {}
