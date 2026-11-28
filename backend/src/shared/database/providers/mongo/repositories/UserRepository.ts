@@ -3,12 +3,7 @@ import { type Collection, ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '../../../../../types.js';
 import { UserRole } from '../../../../interfaces/model.js';
 import { MongoDatabase } from '../index.js';
-import type {
-  IUserRepository,
-  NewUserRecord,
-  RepositoryConflictError,
-  UserRecord,
-} from '../../../interfaces/IUserRepository.js';
+import { RepositoryConflictError, type IUserRepository, type NewUserRecord, type UserRecord } from '../../../interfaces/IUserRepository.js';
 import type { dtoUser } from '../../../../interfaces/dto.js';
 
 @injectable()
