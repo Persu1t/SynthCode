@@ -1,7 +1,10 @@
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDateString,
   IsEmail,
   IsNumber,
+  ValidateNested,
   IsString,
   MaxLength,
   MinLength,
@@ -122,10 +125,18 @@ export class AuthTokenResponseDto {
   expiresIn!: number;
 
   @JSONSchema({ description: 'Authenticated user information', $ref: '#/components/schemas/AuthUserResponseDto' })
+  @ValidateNested()
+  @Type(() => AuthUserResponseDto)
   user!: AuthUserResponseDto;
 }
 
-export class UserProfileResponseDto extends AuthUserResponseDto {}
+export class UserProfileResponseDto extends AuthUserResponseDto {
+  @IsDateString()
+  createdAt!: string;
+
+  @IsDateString()
+  updatedAt!: string;
+}
 
 export class AuthErrorResponseDto {
   @JSONSchema({ example: 'UnauthorizedError' })
